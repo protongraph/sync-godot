@@ -1,0 +1,79 @@
+[gd_scene load_steps=5 format=2]
+
+[ext_resource path="res://addons/sync-godot/src/tools/remote_status_plugin/status_panel.gd" type="Script" id=1]
+[ext_resource path="res://addons/sync-godot/icons/close.svg" type="Texture" id=2]
+[ext_resource path="res://addons/sync-godot/icons/check.svg" type="Texture" id=3]
+[ext_resource path="res://addons/sync-godot/icons/retry.svg" type="Texture" id=4]
+
+[node name="StatusPanel" type="PanelContainer"]
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+margin_left = -40.0
+margin_top = -27.0
+margin_right = 102.0
+margin_bottom = 33.0
+script = ExtResource( 1 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+margin_left = 7.0
+margin_top = 7.0
+margin_right = 155.0
+margin_bottom = 53.0
+
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer"]
+margin_right = 148.0
+margin_bottom = 22.0
+
+[node name="CenterContainer" type="CenterContainer" parent="VBoxContainer/HBoxContainer"]
+margin_right = 16.0
+margin_bottom = 22.0
+
+[node name="IconsContainer" type="HBoxContainer" parent="VBoxContainer/HBoxContainer/CenterContainer"]
+margin_top = 3.0
+margin_right = 16.0
+margin_bottom = 19.0
+alignment = 1
+
+[node name="Check" type="TextureRect" parent="VBoxContainer/HBoxContainer/CenterContainer/IconsContainer"]
+visible = false
+margin_right = 16.0
+margin_bottom = 16.0
+texture = ExtResource( 3 )
+
+[node name="Cross" type="TextureRect" parent="VBoxContainer/HBoxContainer/CenterContainer/IconsContainer"]
+modulate = Color( 1, 0.203922, 0.203922, 1 )
+margin_right = 16.0
+margin_bottom = 16.0
+texture = ExtResource( 2 )
+
+[node name="ConnexionLabel" type="Label" parent="VBoxContainer/HBoxContainer"]
+margin_left = 20.0
+margin_top = 4.0
+margin_right = 108.0
+margin_bottom = 18.0
+text = "Disconnected"
+
+[node name="VSeparator" type="VSeparator" parent="VBoxContainer/HBoxContainer"]
+modulate = Color( 1, 1, 1, 0 )
+margin_left = 112.0
+margin_right = 116.0
+margin_bottom = 22.0
+
+[node name="ReconnectButton" type="Button" parent="VBoxContainer/HBoxContainer"]
+margin_left = 120.0
+margin_right = 148.0
+margin_bottom = 22.0
+icon = ExtResource( 4 )
+
+[node name="RebuildButton" type="Button" parent="VBoxContainer"]
+margin_top = 26.0
+margin_right = 148.0
+margin_bottom = 46.0
+text = "Rebuild"
+[connection signal="pressed" from="VBoxContainer/HBoxContainer/ReconnectButton" to="." method="_on_reconnect_pressed"]
+[connection signal="pressed" from="VBoxContainer/RebuildButton" to="." method="_on_rebuild_pressed"]
