@@ -8,7 +8,7 @@ onready var _icon_check: TextureRect = $VBoxContainer/HBoxContainer/CenterContai
 onready var _icon_cross: TextureRect = $VBoxContainer/HBoxContainer/CenterContainer/IconsContainer/Cross
 onready var _connexion_label: Label = $VBoxContainer/HBoxContainer/ConnexionLabel
 onready var _reconnect_button: Button = $VBoxContainer/HBoxContainer/ReconnectButton
-onready var _rebuild_button: Button = $VBoxContainer/RegenerateButton
+onready var _rebuild_button: Button = $VBoxContainer/RebuildButton
 
 
 func _ready():

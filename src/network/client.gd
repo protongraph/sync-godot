@@ -14,6 +14,7 @@ var _retry_delay := 2.0
 var _retry_timer := Timer.new()
 var _queue := []
 var _is_connected := false
+var _dict_util = load(_get_current_folder() + "/dict_util.gd")
 
 
 func _ready():
@@ -45,13 +46,14 @@ func stop() -> void:
 	_ws.disconnect_from_host()
 
 
-func send(message: String) -> void:
+func send(data: Dictionary) -> void:
 	if _is_connected:
-		var error = _ws.get_peer(1).put_packet(message.to_utf8())
+		var msg = JSON.print(data)
+		var error = _ws.get_peer(1).put_packet(msg.to_utf8())
 		if error != OK:
-			print("Error ", error, " - Could not send ", message)
+			print("Error ", error, " - Could not send ", msg)
 	else:
-		_queue.append(message)
+		_queue.append(data)
 
 
 func is_connected_to_server() -> bool:
@@ -63,6 +65,12 @@ func _try_to_connect() -> void:
 	if error != OK:
 		print("Connection failed: ", error)
 		_retry_timer.start(_retry_delay)
+
+
+func _get_current_folder() -> String:
+	var script: Script = get_script()
+	var path: String = script.get_path()
+	return path.get_base_dir()
 
 
 func _on_connection_error() -> void:
@@ -86,7 +94,14 @@ func _on_connection_closed(_clean_close := false) -> void:
 
 
 func _on_data_received() -> void:
-	print("WS: Data received")
 	var packet: PoolByteArray = _ws.get_peer(1).get_packet()
-	var data = packet.get_string_from_utf8()
+	var string = packet.get_string_from_utf8()
+	
+	var json = JSON.parse(string)
+	if json.error != OK:
+		print("Data was not a valid json object")
+		print("error ", json.error, " ", json.error_string, " at ", json.error_line)
+		return
+	
+	var data = _dict_util.fix_types(json.result)
 	emit_signal("data_received", data)

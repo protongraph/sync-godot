@@ -28,6 +28,7 @@ func _ready():
 		_inputs.connect("input_changed", self, "_on_input_changed")
 		_protocol = _protocol_script.new()
 		add_child(_protocol)
+		_protocol.connect("build_completed", self, "_on_build_completed")
 	else:
 		# The game is running, remove the inputs node as they will get in the
 		# way and waste resources.
@@ -131,23 +132,8 @@ func clear_output() -> void:
 func rebuild() -> void:
 	if not Engine.is_editor_hint() or paused:
 		return
-
-	_protocol.rebuild(template_file)
-
-
-func display_results(nodes: Array) -> void:
-	if not nodes or nodes.size() == 0:
-		return
-
-	clear_output()
-	var owner = get_tree().get_edited_scene_root()
-
-	for node in nodes:
-		if not node:
-			continue
-		_outputs.add_child(node)
-		node.set_owner(owner)
-		_set_children_owner(node, owner)
+	var global_path = ProjectSettings.globalize_path(template_file)
+	_protocol.rebuild(global_path, [], [])
 
 
 func get_input(name: String) -> Node:
@@ -192,3 +178,18 @@ func _set_children_owner(node, owner) -> void:
 
 func _on_input_changed(_node) -> void:
 	rebuild()
+
+
+func _on_build_completed(nodes: Array) -> void:
+	if not nodes or nodes.size() == 0:
+		return
+
+	clear_output()
+	var owner = get_tree().get_edited_scene_root()
+
+	for node in nodes:
+		if not node:
+			continue
+		_outputs.add_child(node)
+		node.set_owner(owner)
+		_set_children_owner(node, owner)
