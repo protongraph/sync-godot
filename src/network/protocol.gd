@@ -7,6 +7,7 @@ signal build_completed
 
 var _client
 var _client_script = load(_get_current_folder() + "/client.gd")
+var _node_util = load(_get_current_folder() + "/../common/node_util.gd")
 var _queue := []
 
 
@@ -23,6 +24,8 @@ func rebuild(template_path: String, inspector: Array, inputs: Array) -> void:
 	var msg := {}
 	msg["command"] = "build"
 	msg["path"] = template_path
+	msg["inspector"] = inspector
+	msg["inputs"] = inputs
 	_client.send(msg)
 
 
@@ -67,89 +70,8 @@ func _on_data_received(msg: Dictionary) -> void:
 func _on_build_completed(data: Array) -> void:
 	var res := []
 	for dict in data:
-		res.append(_deserialize_node_tree(dict))
+		res.append(_node_util.deserialize(dict))
 	
 	emit_signal("build_completed", res)
 
 
-func _deserialize_node_tree(data: Dictionary) -> Node:
-	var res
-	match data["type"]:
-		"node_3d":
-			res = _deserialize_node(data["data"])
-		"mesh":
-			res = _deserialize_mesh(data["data"])
-	
-	if data.has("children"):
-		for child in data["children"]:
-			res.add_child(_deserialize_node_tree(child))
-	
-	return res
-
-
-func _deserialize_node(data: Dictionary) -> Position3D:
-	var node = Position3D.new()
-	node.name = data["name"]
-	node.transform = _extract_transform(data)
-	return node
-
-
-func _deserialize_mesh(data: Dictionary) -> MeshInstance:
-	var mi = MeshInstance.new()
-	mi.transform = _extract_transform(data)
-	
-	var mesh = ArrayMesh.new()
-	for i in data["mesh"].keys():
-		var source = data["mesh"][i]
-		var surface_arrays = []
-		surface_arrays.resize(Mesh.ARRAY_MAX)
-		surface_arrays[Mesh.ARRAY_VERTEX] = _to_pool(source[Mesh.ARRAY_VERTEX])
-		surface_arrays[Mesh.ARRAY_NORMAL] = _to_pool(source[Mesh.ARRAY_NORMAL])
-		surface_arrays[Mesh.ARRAY_TEX_UV] = _to_pool(source[Mesh.ARRAY_TEX_UV])
-		surface_arrays[Mesh.ARRAY_INDEX] = PoolIntArray(source[Mesh.ARRAY_INDEX])
-	
-		mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, surface_arrays)
-	
-	mi.mesh = mesh
-	return mi
-
-
-func _to_pool(array: Array):
-	var tmp = []
-	for vec in array:
-		tmp.append(_extract_vector(vec))
-
-	if tmp[0] is Vector2:
-		return PoolVector2Array(tmp)
-
-	return PoolVector3Array(tmp)
-
-
-func _extract_transform(data: Dictionary) -> Transform:
-	var t = Transform()
-	if data.has("pos"):
-		t.origin = _extract_vector(data["pos"])
-	
-	if data.has("basis"):
-		var basis: Array = data["basis"]
-		t.basis.x = _extract_vector(basis[0])
-		t.basis.y = _extract_vector(basis[1])
-		t.basis.z = _extract_vector(basis[2])
-	
-	return t
-
-
-func _extract_vector(data: Array) -> Vector3:
-	var v = null
-	if data.size() == 3:
-		v = Vector3.ZERO
-		v.x = data[0]
-		v.y = data[1]
-		v.z = data[2]
-	
-	elif data.size() == 2:
-		v = Vector2.ZERO
-		v.x = data[0]
-		v.y = data[1]
-	
-	return v

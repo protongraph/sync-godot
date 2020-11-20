@@ -14,7 +14,7 @@ var _retry_delay := 2.0
 var _retry_timer := Timer.new()
 var _queue := []
 var _is_connected := false
-var _dict_util = load(_get_current_folder() + "/dict_util.gd")
+var _dict_util = load(_get_current_folder() + "/../common/dict_util.gd")
 
 
 func _ready():

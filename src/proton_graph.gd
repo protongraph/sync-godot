@@ -5,7 +5,7 @@ extends Spatial
 signal template_path_changed
 
 
-export(String, FILE, "*.cgraph") var template_file
+export(String, FILE, "*.cgraph") var template_file setget _set_template_file
 export var paused := false
 
 var _initialized := false
@@ -13,8 +13,12 @@ var _inputs: Spatial
 var _outputs: Spatial
 var _exposed_variables := {}
 var _protocol
+
 var _protocol_script = load(_get_current_folder() + "/network/protocol.gd")
 var _input_manager_script = load(_get_current_folder() + "/input_manager.gd")
+var _node_util = load(_get_current_folder() + '/common/node_util.gd')
+var _dict_util = load(_get_current_folder() + '/common/dict_util.gd')
+var _inspector_util = load(_get_current_folder() + '/common/inspector_util.gd')
 
 
 func _ready():
@@ -29,6 +33,7 @@ func _ready():
 		_protocol = _protocol_script.new()
 		add_child(_protocol)
 		_protocol.connect("build_completed", self, "_on_build_completed")
+		_load_template(template_file)
 	else:
 		# The game is running, remove the inputs node as they will get in the
 		# way and waste resources.
@@ -42,6 +47,7 @@ func _ready():
 func _get_property_list() -> Array:
 	var res := []
 	
+	# Used to display the connection UI in the inspector.
 	res.append({
 		name = "Remote Status",
 		type = TYPE_OBJECT,
@@ -69,31 +75,33 @@ func _get(property):
 
 
 func _set(property, value): # overridden
-	if property.begins_with("Template/"):
-		if _exposed_variables.has(property):
-			_exposed_variables[property]["value"] = value
-			rebuild()
-		else:
-			# This happens when loading the scene, don't regenerate here as it will happen again
-			# in _enter_tree
-			_exposed_variables[property] = {"value": value}
+	if not property.begins_with("Template/"):
+		return false
+	
+	if _exposed_variables.has(property):
+		_exposed_variables[property]["value"] = value
+		rebuild()
+	else:
+		# This happens when loading the scene, don't regenerate here as it will happen again
+		# in _enter_tree
+		_exposed_variables[property] = {"value": value}
 
-			if value is float:
-				_exposed_variables[property]["type"] = TYPE_REAL
-			elif value is String:
-				_exposed_variables[property]["type"] = TYPE_STRING
-			elif value is Vector3:
-				_exposed_variables[property]["type"] = TYPE_VECTOR3
-			elif value is bool:
-				_exposed_variables[property]["type"] = TYPE_BOOL
-			elif value is Curve:
-				_exposed_variables[property]["type"] = TYPE_OBJECT
-				_exposed_variables[property]["hint"] = PROPERTY_HINT_RESOURCE_TYPE
-				_exposed_variables[property]["hint_string"] = "Curve"
+		if value is float:
+			_exposed_variables[property]["type"] = TYPE_REAL
+		elif value is String:
+			_exposed_variables[property]["type"] = TYPE_STRING
+		elif value is Vector3:
+			_exposed_variables[property]["type"] = TYPE_VECTOR3
+		elif value is bool:
+			_exposed_variables[property]["type"] = TYPE_BOOL
+		elif value is Curve:
+			_exposed_variables[property]["type"] = TYPE_OBJECT
+			_exposed_variables[property]["hint"] = PROPERTY_HINT_RESOURCE_TYPE
+			_exposed_variables[property]["hint_string"] = "Curve"
 
-			property_list_changed_notify()
-		return true
-	return false
+		property_list_changed_notify()
+	
+	return true
 
 
 func update_exposed_variables(variables: Array) -> void:
@@ -116,8 +124,7 @@ func update_exposed_variables(variables: Array) -> void:
 	property_list_changed_notify()
 
 
-
-# Clear the scene tree from everything returned by the template generation.
+# Removes all the previous build results from the local scene tree.
 func clear_output() -> void:
 	if not _outputs:
 		_outputs = _get_or_create_root("Outputs")
@@ -130,20 +137,61 @@ func clear_output() -> void:
 # Serialize all the inputs and inspector data, then request the standalone app
 # to generate a result.
 func rebuild() -> void:
-	if not Engine.is_editor_hint() or paused:
+	if not Engine.is_editor_hint() or not _protocol or paused:
 		return
 	var global_path = ProjectSettings.globalize_path(template_file)
-	_protocol.rebuild(global_path, [], [])
+	var inspector_values = _inspector_util.serialize(self)
+	var inputs = _node_util.serialize_all(_inputs.get_children())
+	_protocol.rebuild(global_path, inspector_values, inputs)
 
 
-func get_input(name: String) -> Node:
-	if not _inputs:
-		_inputs = _get_or_create_root("Inputs")
+# Load the template file and search for inputs or inspector properties to 
+# expose them to the scene tree or to the inspector.
+func _load_template(path) -> void:
+	if not path or path == "":
+		return
+
+	# Open the file and read the contents
+	var file = File.new()
+	file.open(path, File.READ)
+	var json = JSON.parse(file.get_as_text())
+	if not json or not json.result:
+		print("Failed to parse the template file")
+		return	# Template file is either empty or not a valid Json. Ignore
+
+	# Abort if the file doesn't have node data
+	var graph: Dictionary = _dict_util.fix_types(json.result)
+	if not graph.has("nodes"):
+		return
+
+	# For each node found in the template file
+	for node_data in graph["nodes"]:
+		if not node_data.has("type"):
+			continue
+		
+		if not _inspector_util.is_property(node_data["type"]):
+			continue
+		
+		var n = "Template/" + node_data["editor"]["inputs"][0]["value"]
+		var v = node_data["editor"]["inputs"][1]["value"]
+		
+		if not _exposed_variables.has(n):
+			_exposed_variables[n] = {
+				"default_value": v,
+				"type": _inspector_util.to_variant_type(v)
+			}
+
+	if graph.has("inspector"):
+		for var_name in graph["inspector"].keys():
+			if not _exposed_variables.has(var_name):
+				continue
+			
+			if _exposed_variables[var_name].has("value"):
+				continue # Don't override the user proivded scene value
+			
+			_exposed_variables[var_name]["value"] = graph["inspector"][var_name]
 	
-	if _inputs.has_node(name):
-		return _inputs.get_node(name)
-	
-	return null
+	property_list_changed_notify()
 
 
 func _get_or_create_root(name: String) -> Node:
@@ -174,6 +222,11 @@ func _set_children_owner(node, owner) -> void:
 	for c in node.get_children():
 		c.set_owner(owner)
 		_set_children_owner(c, owner)
+
+
+func _set_template_file(path: String) -> void:
+	template_file = path
+	_load_template(path)
 
 
 func _on_input_changed(_node) -> void:

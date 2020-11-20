@@ -43,12 +43,14 @@ static func format_value(value):
 	return value
 
 
+# Converts a string like this "(0.0, 1.1, 0.5)" into a Vector object
+# Detects wether it's a Vector2 or Vector3 automatically.
 static func string_to_vector(string: String):
 	if not string.begins_with('(') or not string.ends_with(')'):
 		return null
 	
 	string = string.trim_prefix('(')
-	string = string.trim_suffix('(')
+	string = string.trim_suffix(')')
 	var tokens = string.split(',', false)
 	if tokens.size() == 2:
 		var vec2 = Vector2.ZERO
