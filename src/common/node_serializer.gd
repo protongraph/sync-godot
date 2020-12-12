@@ -12,6 +12,9 @@ static func serialize(root: Node) -> Dictionary:
 	if root is MeshInstance:
 		res["type"] = "mesh"
 		res["data"] = _serialize_mesh(root)
+	elif root is Path:
+		res["type"] = "curve_3d"
+		res["data"] = _serialize_curve_3d(root)
 	elif root is Spatial:
 		res["type"] = "node_3d"
 		res["data"] = _serialize_node_3d(root)
@@ -33,17 +36,28 @@ static func deserialize(data: Dictionary) -> Node:
 			res = _deserialize_node_3d(data["data"])
 		"mesh":
 			res = _deserialize_mesh(data["data"])
+		"curve":
+			res = _deserialize_curve_3d(data["data"])
 	
 	if data.has("children"):
 		for child in data["children"]:
 			res.add_child(deserialize(child))
 	
+	res.name = data["name"]
 	return res
 
 
 static func serialize_all(nodes: Array) -> Array:
 	var res = []
 	for node in nodes:
+		res.append(serialize(node))
+	return res
+
+
+static func deserialize_all(nodes: Array) -> Array:
+	var res = []
+	for node in nodes:
+		res.push_back(deserialize(node))
 		res.append(serialize(node))
 	return res
 
@@ -66,7 +80,6 @@ static func _serialize_node_3d(node: Spatial) -> Dictionary:
 
 static func _deserialize_node_3d(data: Dictionary) -> Position3D:
 	var node = Position3D.new()
-	node.name = data["name"]
 	node.transform = _extract_transform(data)
 	return node
 
@@ -105,6 +118,39 @@ static func _deserialize_mesh(data: Dictionary) -> MeshInstance:
 	
 	mi.mesh = mesh
 	return mi
+
+
+# -- Curve 3D --
+
+static func _serialize_curve_3d(path: Path) -> Dictionary:
+	var data = _serialize_node_3d(path)
+	data["points"] = []
+	
+	var curve: Curve3D = path.curve
+	for i in curve.get_point_count():
+		var point = {}
+		point["pos"] = _vector_to_array(curve.get_point_position(i))
+		point["in"] = _vector_to_array(curve.get_point_in(i))
+		point["out"] = _vector_to_array(curve.get_point_out(i))
+		point["tilt"] = curve.get_point_tilt(i)
+		
+	return data
+
+
+static func _deserialize_curve_3d(data: Dictionary) -> Path:
+	var curve = Curve3D.new()
+	for i in data["points"].size():
+		var point = data["points"][i]
+		var p_pos = _extract_vector(point["pos"])
+		var p_in = _extract_vector(point["in"])
+		var p_out = _extract_vector(point["out"])
+		curve.add_point(p_pos, p_in, p_out)
+		curve.set_point_tilt(i, data["tilt"])
+	
+	var path = Path.new()
+	path.transform = _extract_transform(data)
+	path.curve = curve
+	return path
 
 
 # -- Utility functions

@@ -5,7 +5,7 @@ extends Spatial
 signal template_path_changed
 
 
-export(String, FILE, "*.cgraph") var template_file setget _set_template_file
+export(String, FILE, "*.tpgn") var template_file setget _set_template_file
 export var paused := false
 
 var _initialized := false
@@ -16,7 +16,7 @@ var _protocol
 
 var _protocol_script = load(_get_current_folder() + "/network/protocol.gd")
 var _input_manager_script = load(_get_current_folder() + "/input_manager.gd")
-var _node_util = load(_get_current_folder() + '/common/node_util.gd')
+var _node_serializer = load(_get_current_folder() + '/common/node_serializer.gd')
 var _dict_util = load(_get_current_folder() + '/common/dict_util.gd')
 var _inspector_util = load(_get_current_folder() + '/common/inspector_util.gd')
 
@@ -74,7 +74,7 @@ func _get(property):
 			return _exposed_variables[property]["value"]
 
 
-func _set(property, value): # overridden
+func _set(property, value):
 	if not property.begins_with("Template/"):
 		return false
 	
@@ -82,20 +82,12 @@ func _set(property, value): # overridden
 		_exposed_variables[property]["value"] = value
 		rebuild()
 	else:
-		# This happens when loading the scene, don't regenerate here as it will happen again
-		# in _enter_tree
+		# This happens when loading the scene, don't regenerate here as it will
+		# happen again later
 		_exposed_variables[property] = {"value": value}
+		_exposed_variables[property]["type"] = _inspector_util.to_variant_type(value)
 
-		if value is float:
-			_exposed_variables[property]["type"] = TYPE_REAL
-		elif value is String:
-			_exposed_variables[property]["type"] = TYPE_STRING
-		elif value is Vector3:
-			_exposed_variables[property]["type"] = TYPE_VECTOR3
-		elif value is bool:
-			_exposed_variables[property]["type"] = TYPE_BOOL
-		elif value is Curve:
-			_exposed_variables[property]["type"] = TYPE_OBJECT
+		if value is Curve:
 			_exposed_variables[property]["hint"] = PROPERTY_HINT_RESOURCE_TYPE
 			_exposed_variables[property]["hint_string"] = "Curve"
 
@@ -141,7 +133,7 @@ func rebuild() -> void:
 		return
 	var global_path = ProjectSettings.globalize_path(template_file)
 	var inspector_values = _inspector_util.serialize(self)
-	var inputs = _node_util.serialize_all(_inputs.get_children())
+	var inputs = _node_serializer.serialize_all(_inputs.get_children())
 	_protocol.rebuild(global_path, inspector_values, inputs)
 
 

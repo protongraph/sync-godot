@@ -15,6 +15,7 @@ var _retry_timer := Timer.new()
 var _queue := []
 var _is_connected := false
 var _dict_util = load(_get_current_folder() + "/../common/dict_util.gd")
+var _incoming = {}
 
 
 func _ready():
@@ -96,6 +97,34 @@ func _on_connection_closed(_clean_close := false) -> void:
 func _on_data_received() -> void:
 	var packet: PoolByteArray = _ws.get_peer(1).get_packet()
 	var string = packet.get_string_from_utf8()
+	
+	var json = JSON.parse(string)
+	if json.error != OK:
+		print("Data was not a valid json object")
+		print("error ", json.error, " ", json.error_string, " at ", json.error_line)
+		return
+	
+	var data = _dict_util.fix_types(json.result)
+	var id = int(data[0])
+	var chunk_id = int(data[1])
+	var total_chunks = int(data[2])
+	var chunk = data[3]
+	
+	if not id in _incoming:
+		_incoming[id] = {}
+	
+	_incoming[id][chunk_id] = chunk
+	if _incoming[id].size() == total_chunks:
+		_decode(id)
+
+
+func _decode(id: int) -> void:
+	var keys: Array = _incoming[id].keys()
+	keys.sort()
+	
+	var string = ""
+	for chunk_id in keys:
+		string += _incoming[id][chunk_id]
 	
 	var json = JSON.parse(string)
 	if json.error != OK:

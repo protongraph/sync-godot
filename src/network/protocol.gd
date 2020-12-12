@@ -7,7 +7,7 @@ signal build_completed
 
 var _client
 var _client_script = load(_get_current_folder() + "/client.gd")
-var _node_util = load(_get_current_folder() + "/../common/node_util.gd")
+var _node_serializer = load(_get_current_folder() + "/../common/node_serializer.gd")
 var _queue := []
 
 
@@ -64,13 +64,12 @@ func _on_data_received(msg: Dictionary) -> void:
 			_on_build_completed(msg["data"])
 		_:
 			print("Unsupported message ", msg["type"])
-			print(msg)
 
 
 func _on_build_completed(data: Array) -> void:
 	var res := []
 	for dict in data:
-		res.append(_node_util.deserialize(dict))
+		res.append(_node_serializer.deserialize(dict))
 	
 	emit_signal("build_completed", res)
 
