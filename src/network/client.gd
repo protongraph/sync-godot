@@ -38,7 +38,6 @@ func _process(_delta: float) -> void:
 
 
 func start():
-	print("Attempting to connect to ", _url)
 	stop()
 	_try_to_connect()
 
@@ -47,12 +46,37 @@ func stop() -> void:
 	_ws.disconnect_from_host()
 
 
+# By default, Godot limits the packet size to 64kb. We can't ask the users to
+# manually raise that limit in their project settings so we split the packet 
+# in smaller chunks to make sure it's always under 64kb. Format is as follow:
+# {0: stream_id, 1: chunk_id, 2: total_chunk_count, 2: chunk_data}
 func send(data: Dictionary) -> void:
 	if _is_connected:
-		var msg = JSON.print(data)
-		var error = _ws.get_peer(1).put_packet(msg.to_utf8())
-		if error != OK:
-			print("Error ", error, " - Could not send ", msg)
+		var id: int = randi()
+		var msg: String = JSON.print(data)
+		
+		# Calculate how many chunks will be sent, leave some margin for the extra
+		# caracters overhead (brackets, comas, digits used for the chunk id and
+		# total count and so on) this probably won't take more than 200 chars.
+		var chunk_size: int = (64 * 1024) - 200
+		var total_chunks: int = msg.length() / chunk_size + 1
+		
+		for chunk_id in total_chunks:
+			var chunk = msg.substr(chunk_id * chunk_size, chunk_size)
+			var packet = {
+				0: id,
+				1: chunk_id,
+				2: total_chunks,
+				3: chunk
+			}
+			packet = JSON.print(packet).to_utf8()
+			#print("Sending packet: ", packet.size() / 1024.0, "kb")
+			var err = _ws.get_peer(1).put_packet(packet)
+			if err != OK:
+				print("Error ", err, " when sending packet to server")
+	
+	# Server is not connected, queue the request and send it when the connexion
+	# goes back up
 	else:
 		_queue.append(data)
 
@@ -64,7 +88,6 @@ func is_connected_to_server() -> bool:
 func _try_to_connect() -> void:
 	var error = _ws.connect_to_url(_url)
 	if error != OK:
-		print("Connection failed: ", error)
 		_retry_timer.start(_retry_delay)
 
 
@@ -75,12 +98,10 @@ func _get_current_folder() -> String:
 
 
 func _on_connection_error() -> void:
-	print("Connection error to the server")
 	_is_connected = false
 
 
 func _on_connection_etablished(protocol: String) -> void:
-	print("Connection etablished ", protocol)
 	emit_signal("connection_etablished")
 	_is_connected = true
 	
