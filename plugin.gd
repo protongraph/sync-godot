@@ -11,37 +11,52 @@ extends EditorPlugin
 # should see an error warning in the inspector panel.
 
 
-# TODOs
-# + Make a custom gizmo to override the default spatial one so people can't
-#   move the Inputs and Outputs nodes.
-
-
-var status_inspector_plugin: EditorInspectorPlugin = load(
-	_get_current_folder() + 
-	"/src/tools/remote_status_plugin/status_plugin.gd").new()
+var _status_inspector_plugin: EditorInspectorPlugin
+var _editor_gizmo_plugins: Array
 
 
 func _enter_tree() -> void:
-	var root = _get_current_folder()
-	add_inspector_plugin(status_inspector_plugin)
+	_status_inspector_plugin = preload("src/tools/remote_status_plugin/status_plugin.gd").new()
+	add_inspector_plugin(_status_inspector_plugin)
+
 	add_custom_type(
-		"ProtonGraph", 
+		"ProtonGraph",
 		"Spatial",
-		load(root + "/src/proton_graph.gd"),
-		load(root + "/icons/proton_graph.svg")
+		preload("src/proton_graph.gd"),
+		preload("icons/proton_graph.svg")
 	)
+	add_custom_type(
+		"ProtonShapeBox",
+		"Spatial",
+		preload("src/tools/shapes/proton_shape_box.gd"),
+		preload("icons/proton_graph.svg")
+	)
+
+	_register_editor_gizmos()
 
 
 func _exit_tree():
+	remove_inspector_plugin(_status_inspector_plugin)
 	remove_custom_type("ProtonGraph")
-	remove_inspector_plugin(status_inspector_plugin)
+	remove_custom_type("ProtonShapeBox")
+	_deregister_editor_gizmos()
 
 
-# Workaround to get the root folder of the addon, so we don't rely on hardcoded
-# paths to "res://addons/sync-godot". There's always someone not paying
-# attention when downloading a zip from github and ends up with a folder
-# named "sync-godot-master" or something else. 
-func _get_current_folder() -> String:
-	var script: Script = get_script()
-	var path: String = script.get_path()
-	return path.get_base_dir()
+func _register_editor_gizmos() -> void:
+	if not _editor_gizmo_plugins:
+		_editor_gizmo_plugins = []
+
+	if _editor_gizmo_plugins.size() > 0:
+		_deregister_editor_gizmos()
+
+	var box_gizmo = preload("src/tools/shapes/proton_shape_box_gizmo_plugin.gd").new()
+	box_gizmo.editor_plugin = self
+	_editor_gizmo_plugins.append(box_gizmo)
+	add_spatial_gizmo_plugin(box_gizmo)
+
+
+func _deregister_editor_gizmos() -> void:
+	if _editor_gizmo_plugins:
+		for gizmo in _editor_gizmo_plugins:
+			remove_spatial_gizmo_plugin(gizmo)
+	_editor_gizmo_plugins = []

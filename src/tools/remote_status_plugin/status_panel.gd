@@ -24,7 +24,7 @@ func set_node(node) -> void:
 func _refresh_gui() -> void:
 	if not _node or not _node._initialized:
 		return
-	
+
 	if _node._protocol._client.is_connected_to_server():
 		_show_as_connected()
 	else:
@@ -52,3 +52,7 @@ func _on_reconnect_pressed():
 
 func _on_rebuild_pressed():
 	_node.rebuild()
+
+
+func _on_reload_template_pressed():
+	_node.reload_template()

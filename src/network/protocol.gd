@@ -20,7 +20,7 @@ func rebuild(template_path: String, inspector: Array, inputs: Array) -> void:
 		_start_client()
 		_queue.append([template_path, inspector, inputs])
 		return
-	
+
 	var msg := {}
 	msg["command"] = "build"
 	msg["path"] = template_path
@@ -35,7 +35,7 @@ func _start_client() -> void:
 		add_child(_client)
 		_client.connect("connection_etablished", self, "_on_connection_etablished")
 		_client.connect("data_received", self, "_on_data_received")
-		
+
 	_client.start()
 
 
@@ -58,7 +58,7 @@ func _on_connection_etablished() -> void:
 func _on_data_received(msg: Dictionary) -> void:
 	if not msg.has("type"):
 		return
-	
+
 	match msg["type"]:
 		"build_completed":
 			_on_build_completed(msg["data"])
@@ -70,7 +70,7 @@ func _on_build_completed(data: Array) -> void:
 	var res := []
 	for dict in data:
 		res.append(_node_serializer.deserialize(dict))
-	
+
 	emit_signal("build_completed", res)
 
 

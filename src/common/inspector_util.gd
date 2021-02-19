@@ -20,15 +20,20 @@ static func to_variant_type(value):
 		return TYPE_VECTOR3
 	elif value is Curve:
 		return TYPE_OBJECT
-	
+
 	return TYPE_NIL
 
 
 static func serialize(node) -> Array:
+	print("In serialize")
 	var res = []
 	for vname in node._exposed_variables.keys():
 		var d = {}
 		d["name"] = vname.trim_prefix("Template/")
-		d["value"] = node._exposed_variables[vname]["value"]
+		if node._exposed_variables[vname].has("value"):
+			d["value"] = node._exposed_variables[vname]["value"]
+		else:
+			d["value"] = node._exposed_variables[vname]["default_value"]
 		res.append(d)
+	print("Res ", res)
 	return res

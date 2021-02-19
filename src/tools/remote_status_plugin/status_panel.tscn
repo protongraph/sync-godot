@@ -23,7 +23,7 @@ __meta__ = {
 margin_left = 7.0
 margin_top = 7.0
 margin_right = 155.0
-margin_bottom = 53.0
+margin_bottom = 77.0
 
 [node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer"]
 margin_right = 148.0
@@ -70,10 +70,18 @@ margin_right = 148.0
 margin_bottom = 22.0
 icon = ExtResource( 4 )
 
-[node name="RebuildButton" type="Button" parent="VBoxContainer"]
+[node name="RefreshTemplate" type="Button" parent="VBoxContainer"]
 margin_top = 26.0
 margin_right = 148.0
 margin_bottom = 46.0
+text = "Reload Template"
+
+[node name="RebuildButton" type="Button" parent="VBoxContainer"]
+margin_top = 50.0
+margin_right = 148.0
+margin_bottom = 70.0
 text = "Rebuild"
+
 [connection signal="pressed" from="VBoxContainer/HBoxContainer/ReconnectButton" to="." method="_on_reconnect_pressed"]
+[connection signal="pressed" from="VBoxContainer/RefreshTemplate" to="." method="_on_reload_template_pressed"]
 [connection signal="pressed" from="VBoxContainer/RebuildButton" to="." method="_on_rebuild_pressed"]
