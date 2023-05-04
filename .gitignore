@@ -3,6 +3,7 @@
 .import/
 export.cfg
 export_presets.cfg
+.godot/
 
 # WAT-specific ignores
 .test/
@@ -30,3 +31,4 @@ native/logs
 .vscode
 
 tmp/
+bin/

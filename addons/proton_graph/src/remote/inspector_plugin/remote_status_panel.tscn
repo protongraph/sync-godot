@@ -1,0 +1,65 @@
+[gd_scene load_steps=5 format=3 uid="uid://dmkds3mu12vwp"]
+
+[ext_resource type="Script" path="res://addons/proton_graph/src/remote/inspector_plugin/remote_status_panel.gd" id="1_5btlh"]
+[ext_resource type="Texture2D" uid="uid://1erxwjlf24" path="res://addons/proton_graph/icons/check.svg" id="1_5i23l"]
+[ext_resource type="Texture2D" uid="uid://ceos2ppojspay" path="res://addons/proton_graph/icons/close.svg" id="2_11fjx"]
+[ext_resource type="Texture2D" uid="uid://xdjyilgxnit2" path="res://addons/proton_graph/icons/retry.svg" id="3_4mpjl"]
+
+[node name="RemoteStatusPanel" type="PanelContainer"]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_vertical = 4
+script = ExtResource("1_5btlh")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+
+[node name="ConnectionStatusBox" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 4
+
+[node name="ReconnectButton" type="Button" parent="MarginContainer/VBoxContainer/ConnectionStatusBox"]
+unique_name_in_owner = true
+layout_mode = 2
+icon = ExtResource("3_4mpjl")
+icon_alignment = 1
+
+[node name="StatusLabel" type="Label" parent="MarginContainer/VBoxContainer/ConnectionStatusBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Disconnected"
+
+[node name="IconConnected" type="TextureRect" parent="MarginContainer/VBoxContainer/ConnectionStatusBox"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+texture = ExtResource("1_5i23l")
+stretch_mode = 5
+
+[node name="IconDisconnected" type="TextureRect" parent="MarginContainer/VBoxContainer/ConnectionStatusBox"]
+unique_name_in_owner = true
+modulate = Color(1, 0.121569, 0.384314, 1)
+layout_mode = 2
+texture = ExtResource("2_11fjx")
+stretch_mode = 5
+
+[node name="ReloadGraphButton" type="Button" parent="MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+focus_mode = 0
+text = "Reload graph"
+
+[node name="RebuildButton" type="Button" parent="MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+focus_mode = 0
+text = "Rebuild"

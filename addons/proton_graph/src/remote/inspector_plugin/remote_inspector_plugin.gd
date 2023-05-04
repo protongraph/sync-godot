@@ -1,23 +1,24 @@
+@tool
 extends EditorInspectorPlugin
 
 # Displays a control panel in the inspector to monitor the connection status
 # with the standalone app and let the user manually force the generation if
 # needed.
 
-var _root := _get_root_folder()
-var proton_graph_script = load(_root + "/src/proton_graph.gd")
-var status_panel = load(_root + "/src/tools/remote_status_plugin/status_editor.gd")
+
+const PROTON_GRAPH := preload("../../proton_graph.gd")
+const REMOTE_EDITOR_PROPERTY := preload("./remote_editor_property.gd")
 
 
-func can_handle(object):
-	return object is proton_graph_script
+func _can_handle(node):
+	return node is PROTON_GRAPH
 
 
-func parse_property(object, type, path, hint, hint_text, usage):
-	if type == TYPE_OBJECT and hint_text == "ProtonGraphRemoteStatus":
-		var property_editor = status_panel.new()
+func _parse_property(object: Object, type, name: String, hint_type: PropertyHint, hint_string: String, usage_flags: PropertyUsageFlags, wide: bool):
+	if type == TYPE_OBJECT and hint_string == "ProtonGraphRemote":
+		var property_editor = REMOTE_EDITOR_PROPERTY.new()
 		property_editor.set_node(object)
-		add_property_editor(path, property_editor)
+		add_property_editor(name, property_editor)
 		return true
 	return false
 
